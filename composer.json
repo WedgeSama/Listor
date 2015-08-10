@@ -1,0 +1,41 @@
+{
+    "name": "ws/listor",
+    "description": "A library to make pagination easy, sort it and filter it.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Benjamin Georgeault",
+            "email": "github@wedgesama.fr"
+        }
+    ],
+    "keywords": [
+        "pagination",
+        "sorting",
+        "filtering"
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "symfony/event-dispatcher": "~2.3",
+        "symfony/options-resolver": "~2.6"
+    },
+    "require-dev": {
+        "doctrine/dbal": "~2.5",
+        "twig/twig": "~1.18",
+        "phpunit/phpunit": "^4.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "WS\\Libraries\\Listor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "WS\\Libraries\\Listor\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
+}
