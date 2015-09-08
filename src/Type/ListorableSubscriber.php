@@ -12,38 +12,21 @@ namespace WS\Libraries\Listor\Type;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use WS\Libraries\Listor\Event\ListorEvent;
 use WS\Libraries\Listor\Events;
+use WS\Libraries\Listor\ListorableInterface;
 
 /**
- * ArraySubscriber
+ * ListorableSubscriber
  *
  * @author Benjamin Georgeault <github@wedgesama.fr>
  */
-class ArraySubscriber implements EventSubscriberInterface
+class ListorableSubscriber implements EventSubscriberInterface
 {
     public function parser(ListorEvent $event)
     {
         $target = $event->getTarget();
 
-        if ($target instanceof \ArrayObject) {
-            $target = $target->getArrayCopy();
-        }
-
-        if (is_array($target)) {
-            // TODO Sort
-
-            // TODO Filter
-
-            $params = $event->getParams();
-            // Pagination.
-            $event->setCount(count($target));
-
-            $event->setItems(array_slice(
-                $target,
-                $params['currentPage']*$params['itemsPerPage'],
-                $params['itemsPerPage']
-            ));
-
-            $event->stopPropagation();
+        if ($target instanceof ListorableInterface) {
+            $event->setTarget($target->getListorable());
         }
     }
 
@@ -53,7 +36,7 @@ class ArraySubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            Events::TARGET_PARSE => array('parser', -10),
+            Events::TARGET_PARSE => array('parser', 1000),
         );
     }
 }

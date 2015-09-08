@@ -20,6 +20,13 @@ use WS\Libraries\Listor\Exception\ListorException;
 class ListorEvent extends Event
 {
     /**
+     * Use to make all query parameters unique.
+     *
+     * @var int
+     */
+    private static $increment = 0;
+
+    /**
      * @var mixed
      */
     private $target;
@@ -135,5 +142,16 @@ class ListorEvent extends Event
     public function filterParsed($field)
     {
         $this->filters[$field]['parsed'] = true;
+    }
+
+    /**
+     * Get a unique string for storage request.
+     *
+     * @param string $string
+     * @return string
+     */
+    public function getUniqueName($string)
+    {
+        return $string.'_'.self::$increment++;
     }
 }

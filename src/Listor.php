@@ -45,7 +45,7 @@ class Listor implements ListorInterface
         $filters = $this->resolver->resolveFilters($filters);
 
         /** @var ListorEvent $event */
-        $event = $this->dispatcher->dispatch('ws_listor.target_parser', new ListorEvent($target, $params, $filters));
+        $event = $this->dispatcher->dispatch(Events::TARGET_PARSE, new ListorEvent($target, $params, $filters));
 
         if (!$event->isPropagationStopped()) {
             throw new ListorException(sprintf('The type "%s" is not handle by Listor.', get_class($event->getTarget())));

@@ -12,8 +12,9 @@ namespace WS\Libraries\Listor\Type\Doctrine\Dbal;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use WS\Libraries\Listor\Event\ListorEvent;
+use WS\Libraries\Listor\Events;
 use WS\Libraries\Listor\Exception\ListorException;
-use WS\Libraries\Listor\ListorOperations;
+use WS\Libraries\Listor\Operations;
 
 /**
  * QueryBuilderSubscriber
@@ -22,13 +23,6 @@ use WS\Libraries\Listor\ListorOperations;
  */
 class QueryBuilderSubscriber implements EventSubscriberInterface
 {
-    /**
-     * Use to make all query parameters unique.
-     *
-     * @var int
-     */
-    private static $increment = 0;
-
     public function parser(ListorEvent $event)
     {
         $target = $event->getTarget();
@@ -37,61 +31,59 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
             $sort = array();
             foreach ($event->getFilters() as $field => $filter) {
                 // Prepare sort.
-                if (!$filter['sorted']) {
-                    if (array_key_exists('sort', $filter)) {
-                        $priority = $filter['sort_priority'];
-                        if (!array_key_exists($priority, $sort)) {
-                            $sort[$priority] = array();
-                        }
-
-                        $sort[$priority][$field] = $filter['sort'];
+                if (!$filter['sorted'] && array_key_exists('sort', $filter)) {
+                    $priority = $filter['sort_priority'];
+                    if (!array_key_exists($priority, $sort)) {
+                        $sort[$priority] = array();
                     }
+
+                    $sort[$priority][$field] = $filter['sort'];
                 }
 
                 // Operator.
                 if (!$filter['parsed']) {
                     if (array_key_exists('operator', $filter) && array_key_exists('value', $filter)) {
-                        $name = $field . '_' . self::$increment++;
+                        $name = $event->getUniqueName($field);
                         switch ($filter['operator']) {
-                            case ListorOperations::TEXT_EQUAL:
+                            case Operations::TEXT_EQUAL:
                                 $target->andWhere($target->expr()->eq('a.' . $field, ':' . $name))
                                     ->setParameter($name, $filter['value']);
                                 break;
-                            case ListorOperations::TEXT_NOT_EQUAL:
+                            case Operations::TEXT_NOT_EQUAL:
                                 $target->andWhere($target->expr()->neq('a.' . $field, ':' . $name))
                                     ->setParameter($name, $filter['value']);
                                 break;
-                            case ListorOperations::TEXT_LIKE:
+                            case Operations::TEXT_LIKE:
                                 $target->andWhere($target->expr()->like('a.' . $field, ':' . $name))
                                     ->setParameter($name, '%' . str_replace('%', '\\%', $filter['value']) . '%');
                                 break;
-                            case ListorOperations::TEXT_NOT_LIKE:
+                            case Operations::TEXT_NOT_LIKE:
                                 $target->andWhere($target->expr()->notLike('a.' . $field, ':' . $name))
                                     ->setParameter($name, '%' . str_replace('%', '\\%', $filter['value']) . '%');
                                 break;
-                            case ListorOperations::TEXT_START_BY:
+                            case Operations::TEXT_START_BY:
                                 $target->andWhere($target->expr()->like('a.' . $field, ':' . $name))
                                     ->setParameter($name, str_replace('%', '\\%', $filter['value']) . '%');
                                 break;
-                            case ListorOperations::TEXT_END_BY:
+                            case Operations::TEXT_END_BY:
                                 $target->andWhere($target->expr()->like('a.' . $field, ':' . $name))
                                     ->setParameter($name, '%' . str_replace('%', '\\%', $filter['value']));
                                 break;
-                            case ListorOperations::DATETIME_BETWEEN:
+                            case Operations::DATETIME_BETWEEN:
                                 if (empty($filter['value']['start']) || empty($filter['value']['end'])) {
                                     continue;
                                 }
 
-                                $name2 = $field . '_' . self::$increment++;
+                                $name2 = $event->getUniqueName($field);
                                 $target->andWhere($target->expr()->gte('a.' . $field, ':' . $name))
                                     ->andWhere($target->expr()->lte('a.' . $field, ':' . $name2))
                                     ->setParameter($name, $filter['value']['start'])
                                     ->setParameter($name2, $filter['value']['end']);
                                 break;
-                            case ListorOperations::DATETIME_EXACT:
+                            case Operations::DATETIME_EXACT:
                                 // TODO
                                 break;
-                            case ListorOperations::DATETIME_BEFORE:
+                            case Operations::DATETIME_BEFORE:
                                 if (empty($filter['value']['start'])) {
                                     continue;
                                 }
@@ -99,7 +91,7 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
                                 $target->andWhere($target->expr()->lte('a.' . $field, ':' . $name))
                                     ->setParameter($name, $filter['value']['start']);
                                 break;
-                            case ListorOperations::DATETIME_AFTER:
+                            case Operations::DATETIME_AFTER:
                                 if (empty($filter['value']['start'])) {
                                     continue;
                                 }
@@ -107,9 +99,9 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
                                 $target->andWhere($target->expr()->gte('a.' . $field, ':' . $name))
                                     ->setParameter($name, $filter['value']['start']);
                                 break;
-                            case ListorOperations::CHOICE_AND:
-                            case ListorOperations::CHOICE_OR:
-                            case ListorOperations::CHOICE_NAND:
+                            case Operations::CHOICE_AND:
+                            case Operations::CHOICE_OR:
+                            case Operations::CHOICE_NAND:
                                 if (!is_array($filter['value']) && !(is_object($filter['value']) && $filter['value'] instanceof \Traversable)) {
                                     $filter['value'] = array($filter['value']);
                                 }
@@ -118,16 +110,16 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
                                     break;
                                 }
 
-                                $method = ($filter['operator'] == ListorOperations::CHOICE_NAND) ? 'neq' : 'eq';
+                                $method = ($filter['operator'] == Operations::CHOICE_NAND) ? 'neq' : 'eq';
 
                                 $exprs = array();
                                 foreach ($filter['value'] as $one) {
                                     $exprs[] = $target->expr()->$method('a.' . $field, ':' . $name);
                                     $target->setParameter($name, $one);
-                                    $name = $field . '_' . self::$increment++;
+                                    $name = $event->getUniqueName($field);
                                 }
 
-                                $op = ($filter['operator'] == ListorOperations::CHOICE_OR) ? 'orX' : 'andX';
+                                $op = ($filter['operator'] == Operations::CHOICE_OR) ? 'orX' : 'andX';
                                 $target->andWhere(call_user_func_array(array($target->expr(), $op), $exprs));
                                 break;
                             default:
@@ -135,8 +127,6 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
                         }
                     }
                 }
-
-                $event->filterParsed($field);
             }
 
             // Count.
@@ -172,7 +162,7 @@ class QueryBuilderSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            'ws_listor.target_parser' => array('parser', 0),
+            Events::TARGET_PARSE => array('parser', 0),
         );
     }
 }

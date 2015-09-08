@@ -41,7 +41,7 @@ class Iterable implements IterableInterface
      */
     private $itemsPerPage;
 
-    public function __construct($items, $totalItems, $currentPage = 0, $itemsPerPage = 10)
+    public function __construct(array $items, $totalItems, $currentPage = 0, $itemsPerPage = 10)
     {
         $this->items = $items;
         $this->totalItems = $totalItems;
@@ -132,14 +132,6 @@ class Iterable implements IterableInterface
     public function count()
     {
         return count($this->items);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        // TODO
     }
 
     /**

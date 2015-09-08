@@ -20,7 +20,10 @@
     },
     "require-dev": {
         "doctrine/dbal": "~2.5",
+        "jms/serializer": "0.*",
         "twig/twig": "~1.18",
+        "symfony/form": "~2.6",
+        "symfony/validator": "~2.3",
         "phpunit/phpunit": "^4.6"
     },
     "autoload": {
